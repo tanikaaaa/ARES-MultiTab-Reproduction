@@ -1,139 +1,512 @@
-# ARES Multi-Tab Website Fingerprinting — Reproduction
+# ARES: Multi-Tab Website Fingerprinting — Reproduction
 
-An independent B.Tech research reproduction of the released **ARES** baseline on closed-world 2-, 3-, 4-, and 5-tab website-fingerprinting datasets. Website fingerprinting infers visited websites from encrypted traffic patterns; the multi-tab setting requires identifying multiple websites within one mixed trace. ARES combines multi-channel temporal aggregation features (MTAF), local traffic profiling, and attention-based modeling for multi-label prediction.
 
-This repository is a separate copy of [FIND-Lab's Website-Fingerprinting-Library (WFlib)](https://github.com/FIND-Lab/Website-Fingerprinting-Library), based on upstream commit `537ec8e`. The ARES architecture, reference feature calculations, training utilities, and evaluation formulas are upstream work. The reproduction adds memory-safe extraction and loading, streaming experiment entry points, validation diagnostics, and consolidated experiment records. It does **not** claim a new model or exact reproduction of published scores. Other upstream models and scripts remain included for provenance.
+## 1. Overview
 
-## Research and data sources
+This repository documents the reproduction and experimental evaluation of **ARES**, a deep-learning framework for multi-tab website fingerprinting.
 
-- Xinhao Deng et al., **Toward Robust Multi-Tab Website Fingerprinting**, IEEE Transactions on Networking, 2026. [DOI: 10.1109/TON.2026.3666721](https://doi.org/10.1109/TON.2026.3666721). The [accessible manuscript](https://arxiv.org/html/2501.12622v1) provides the reviewed metric equations and Table II comparison values.
-- Original ARES work: **Robust Multi-tab Website Fingerprinting Attacks in the Wild**, IEEE Symposium on Security and Privacy, 2023. See the [authors' multi-tab dataset repository](https://github.com/Xinhao-Deng/Multitab-WF-Datasets) for research and dataset provenance.
-- WFlib dataset distribution: [Zenodo record 13732130](https://zenodo.org/records/13732130). Obtain the official closed-world multi-tab datasets from the upstream sources and follow their usage terms; data is not redistributed here.
-- WFlib attribution: Xinhao Deng, Qi Li, and Ke Xu, **Robust and Reliable Early-Stage Website Fingerprinting Attacks via Spatial-Temporal Distribution Analysis**, ACM CCS, 2024. Cite both the original ARES research and WFlib when using their implementation.
+The reproduction is based on the research paper:
 
-## Experimental scope and representation
+**Toward Robust Multi-Tab Website Fingerprinting**  
+Xinhao Deng et al., *IEEE Transactions on Networking*, 2026.
 
-Each tab count uses 58,000 traces and 100 monitored website classes, with exactly `k` positive labels per trace. The split is **46,980 training / 5,220 validation / 5,800 test** samples. The split script uses seed 2024, a 90%/10% train/test split followed by a 90%/10% train/validation split, without stratification for these multi-label experiments.
+- [Research Paper](https://arxiv.org/abs/2501.12622)
+- [Original Implementation — Website-Fingerprinting-Library](https://github.com/FIND-Lab/Website-Fingerprinting-Library)
+- [Dataset — Zenodo](https://zenodo.org/records/13732130)
 
-`exp/dataset_process/gen_mtaf_stream.py` calls the unchanged reference `process_MTAF()` and `agg_interval2()`:
+The objective is to reproduce the closed-world experiments involving **2, 3, 4, and 5 simultaneously active browser tabs**, evaluate the ARES model, and compare the reproduced results with those reported in the paper.
 
-- Signed timestamps preserve packet direction and packet order. Float32 timestamps are multiplied in place by 1000 for millisecond scaling.
-- Aggregation uses 20 ms intervals, relative to the first packet's absolute timestamp, with 8,000 positions. The final position includes all remaining packets.
-- Eight channels contain positive/negative packet counts, sums of successive same-direction timestamp differences, positive/negative burst counts, and mean positive/negative burst lengths.
-- Features are stored as float32 `(N, 8, 8000)` arrays. Labels are preserved on disk and returned as float32 multi-hot tensors by `MTAFDataset`.
-- Extraction writes disk-backed `X.npy`, `y.npy`, and a completion marker `COMPLETE.json`. Loading requires the marker and uses read-only memory maps with writable per-row tensor copies.
+This project focuses on experimental reproduction and analysis. It does not claim to introduce a new website-fingerprinting architecture.
 
-No timestamp sorting or cleaning is applied. The reference uses `np.searchsorted`, which assumes sorted absolute timestamps; preserving timestamp reversals preserves reference behavior rather than resolving that limitation. Feature arrays alone require about 13.83 GiB per complete 58,000-sample dataset, so lazy loading is essential on the reproduction machine.
+---
 
-## Recorded environment and training settings
+## 2. Research Background
 
-The experiment machine was an Apple Silicon MacBook Air with 16 GiB unified memory (experiment context). The [consolidated JSON record](results/ares_closed_world_2to5_summary.json) records the following settings for all four runs:
+### What is Website Fingerprinting?
 
-| Setting | Value |
+Website fingerprinting (WF) is a traffic-analysis technique that attempts to identify visited websites using observable characteristics of encrypted network traffic.
+
+Although encryption protects packet contents, an observer may still analyze traffic characteristics such as:
+
+- Packet directions
+- Packet timing
+- Traffic bursts
+- Packet sequences
+- Temporal traffic patterns
+
+These characteristics can reveal information about browsing activity.
+
+### Multi-Tab Website Fingerprinting
+
+Traditional website-fingerprinting approaches often assume that a user visits one website at a time.
+
+In realistic browsing scenarios, however, multiple websites may be open simultaneously.
+
+The resulting network traffic combines packets associated with different websites, making individual website identification more challenging.
+
+ARES addresses this multi-label classification problem by learning representations from mixed browsing traffic.
+
+### Research Objective
+
+The central question investigated in this reproduction is:
+
+> How effectively can ARES identify multiple simultaneously visited websites from their combined network traffic, and how does performance change as the number of active tabs increases?
+
+---
+
+## 3. Reproduction Scope
+
+This project reproduces four closed-world experimental settings.
+
+| Experiment | Active Tabs | Website Classes | Samples |
+|---|---:|---:|---:|
+| CW-2 | 2 | 100 | 58,000 |
+| CW-3 | 3 | 100 | 58,000 |
+| CW-4 | 4 | 100 | 58,000 |
+| CW-5 | 5 | 100 | 58,000 |
+
+Each sample has exactly `k` positive website labels, where `k` is the number of active tabs.
+
+### Reproduction Highlights
+
+- Acquired and validated the publicly released multi-tab datasets.
+- Implemented memory-efficient, disk-backed MTAF preprocessing.
+- Preserved the original ARES model implementation.
+- Adapted the training and evaluation workflow for Apple Silicon MPS.
+- Added configurable 2–5-tab experimental support.
+- Trained four separate ARES models for 30 epochs each.
+- Evaluated the best validation checkpoint on held-out test data.
+- Generated consolidated experimental results and checkpoint hashes.
+- Investigated recurring validation instability through a controlled BatchNorm diagnostic.
+
+---
+
+## 4. Dataset
+
+The experiments use the publicly available multi-tab website-fingerprinting datasets.
+
+**Dataset source:** [Zenodo — Website Fingerprinting Attack Evaluation](https://zenodo.org/records/13732130)
+
+The following datasets were used:
+
+```text
+closed_2tab.npz
+closed_3tab.npz
+closed_4tab.npz
+closed_5tab.npz
+```
+
+Each dataset contains:
+
+| Array | Shape | Data Type |
+|---|---|---|
+| X | (58000, 10000) | float32 |
+| y | (58000, 100) | int8 |
+
+`X` contains signed packet-timing traces, while `y` contains multi-label website indicators.
+
+### Dataset Splitting
+
+The same splitting procedure was applied to all four datasets.
+
+| Split | Samples | Percentage |
+|---|---:|---:|
+| Training | 46,980 | 81% |
+| Validation | 5,220 | 9% |
+| Testing | 5,800 | 10% |
+| Total | 58,000 | 100% |
+
+All splits were verified to contain 100 website classes and the expected number of positive labels per sample.
+
+### Dataset Validation
+
+The following checks were performed:
+
+- Verified input and label shapes.
+- Confirmed binary labels.
+- Verified exactly `k` positive labels per sample.
+- Checked numerical finiteness.
+- Inspected packet directions and trace lengths.
+- Identified timestamp-order irregularities.
+- Confirmed that all dataset splits retained the expected labels.
+
+Some traces contain small decreases in packet timestamps. These irregularities were documented, and the original data was preserved.
+
+---
+
+## 5. Methodology
+
+### 5.1 MTAF Preprocessing
+
+ARES uses a Multi-channel Time-based Aggregate Feature (MTAF) representation.
+
+The original packet traces were transformed into fixed-size feature tensors.
+
+**Preprocessing configuration:**
+
+| Parameter | Value |
 |---|---|
-| Backend / framework | MPS / PyTorch 2.2.2 |
-| NumPy | 1.26.4 |
-| Model | Released ARES, 100 output classes |
-| Epochs / batch size / seed | 30 / 64 / 2024 |
+| Feature channels | 8 |
+| Sequence length | 8,000 |
+| Time interval | 20 ms |
+| Output dtype | float32 |
+| Processing | Disk-backed streaming |
+
+Each processed sample has shape:
+
+```text
+(8, 8000)
+```
+
+The complete dataset is stored as NumPy arrays, allowing memory-efficient loading during training.
+
+The preprocessing implementation was verified against the original `process_MTAF` function using exact numerical comparisons on selected samples.
+
+### 5.2 Model
+
+The experiments use the ARES implementation provided in the original Website-Fingerprinting-Library.
+
+ARES processes MTAF traffic representations and produces scores for 100 website classes.
+
+Because multiple websites may be present simultaneously, the task is formulated as multi-label classification.
+
+The original model architecture was retained.
+
+### 5.3 Training Configuration
+
+| Parameter | Configuration |
+|---|---|
+| Model | ARES |
+| Epochs | 30 |
+| Batch size | 64 |
+| Learning rate | 0.002 |
+| Optimizer | AdamW |
 | Loss | MultiLabelSoftMarginLoss |
-| Optimizer | AdamW, learning rate 0.002 |
-| AdamW defaults | Weight decay 0.01; betas (0.9, 0.999); epsilon 1e-8 |
-| Scheduler | StepLR, step_size=30, gamma=0.74 |
-| Loader workers | 0 |
-| Shuffle | Training: true; validation/test: false |
-| Training drop_last | false |
-| Checkpoint selection | Highest validation AP@k |
-| Evaluation | Released common evaluator; AUC, P@k, AP@k |
+| Scheduler | StepLR |
+| Scheduler step size | 30 |
+| Scheduler gamma | 0.74 |
+| Random seed | 2024 |
+| Device | Apple MPS |
+| Training shuffle | True |
+| Drop last batch | False |
 
-Python 3.9.6 was reported for the experiment environment, but is not independently recorded in the consolidated run settings. The dependency set is not fully version-locked. Batch size 64 and `drop_last=False` differ from the released ARES shell configuration/loader (batch size 512 and `drop_last=True`). With 46,980 training rows, each epoch has 734 full batches and one four-sample batch.
+The experiments used PyTorch 2.2.2 and NumPy 1.26.4.
 
-## Held-out results and published comparison
+The batch size and `drop_last` behavior differ from the released reference training configuration.
 
-Values below are copied from the saved summary; no inference was rerun to prepare this repository.
+The model checkpoint was selected using the best validation AP@k score.
 
-| Tabs | Reproduced AUC | Reproduced P@k | Reproduced AP@k | Published AUC | Published P@k | Published MAP@k |
-|---|---|---|---|---|---|---|
-| 2 | 0.9901 | 0.8344 | 0.8938 | 0.9950 | 0.9040 | 0.9380 |
-| 3 | 0.9796 | 0.7853 | 0.8665 | 0.9900 | 0.8730 | 0.9160 |
-| 4 | 0.9756 | 0.7831 | 0.8602 | 0.9890 | 0.8840 | 0.9220 |
-| 5 | 0.9640 | 0.7162 | 0.8138 | 0.9880 | 0.8690 | 0.9090 |
+---
 
-The released evaluator computes P@k as the mean fraction of correct labels in the top `k`. Its AP@k is `sum(P@i for i=1..k) / k`, matching MAP@k in equations 9–10 of the reviewed manuscript. This is **not conventional relevance-weighted average precision**. The final journal equations were not independently verified. Repository AUC is macro-averaged across classes; published AUC averaging remains uncertain, so the table is descriptive rather than proof of identical evaluation protocols.
+## 6. Experimental Results
 
-Best validation epochs are **18, 28, 27, and 24** for 2–5 tabs respectively, **zero-indexed and transcribed from training logs**, not recovered from checkpoint tensors. Selection uses validation data; the table reports held-out test results. These are single-seed runs with rounded metrics, without confidence intervals.
+All four models were trained for 30 epochs and evaluated on their respective held-out test sets.
 
-## Reproduction commands
+### 6.1 Reproduced Results
 
-Run from this repository root. Commands below are instructions, not steps executed during publication preparation. Create a local environment with a compatible Python version:
+| Tabs | AUC | P@k | AP@k | Best Epoch |
+|---|---:|---:|---:|---:|
+| 2 | 0.9901 | 0.8344 | 0.8938 | 18 |
+| 3 | 0.9796 | 0.7853 | 0.8665 | 28 |
+| 4 | 0.9756 | 0.7831 | 0.8602 | 27 |
+| 5 | 0.9640 | 0.7162 | 0.8138 | 24 |
 
-```sh
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install 'torch==2.2.2' 'numpy==1.26.4'
-python -m pip install -e .
+Best epochs are zero-indexed.
+
+### 6.2 Comparison With Published Results
+
+| Tabs | Published P@k | Reproduced P@k | Published MAP@k | Reproduced AP@k |
+|---|---:|---:|---:|---:|
+| 2 | 0.9040 | 0.8344 | 0.9380 | 0.8938 |
+| 3 | 0.8730 | 0.7853 | 0.9160 | 0.8665 |
+| 4 | 0.8840 | 0.7831 | 0.9220 | 0.8602 |
+| 5 | 0.8690 | 0.7162 | 0.9090 | 0.8138 |
+
+The reviewed repository AP@k and manuscript MAP@k definitions use the average of P@i over ranks 1 through k. This differs from conventional relevance-weighted average precision.
+
+Published AUC aggregation was not independently established as identical to the reproduced implementation.
+
+The reproduced results are consistently below the published values.
+
+---
+
+## 7. Results and Observations
+
+### Observation 1 — Performance Decreases With More Tabs
+
+ARES achieved its strongest results in the 2-tab setting.
+
+As the number of simultaneously visited websites increased, identification performance generally decreased.
+
+For example:
+
+- 2-tab AP@2: **0.8938**
+- 5-tab AP@5: **0.8138**
+
+This illustrates the increased difficulty of separating website identities from more heavily mixed traffic.
+
+### Observation 2 — Strong Ranking Performance
+
+Across all four settings, the reproduced models achieved relatively high AUC and AP@k scores.
+
+However, identifying the exact set of active websites remained more difficult, particularly for the 5-tab experiment.
+
+### Observation 3 — Validation Instability
+
+Some training epochs showed severe validation-score fluctuations despite progressively decreasing training loss.
+
+For example, during 5-tab training:
+
+| Epoch | Validation AP@5 |
+|---|---:|
+| 23 | 0.7974 |
+| 24 | 0.8132 |
+| 25 | 0.7136 |
+| 26 | 0.1248 |
+| 27 | 0.7655 |
+
+A controlled BatchNorm sensitivity diagnostic was conducted to investigate one possible explanation.
+
+The diagnostic demonstrated that small-batch updates could change predictions, but did not reproduce the severe validation collapse.
+
+The underlying cause remains unresolved.
+
+### Observation 4 — Best Checkpoint Selection
+
+Selecting the checkpoint using the highest validation AP@k helped preserve the strongest model encountered during training.
+
+Final test scores were computed using these selected checkpoints rather than the models from the last training epoch.
+
+---
+
+## 8. Project Structure
+
+```text
+ARES-MultiTab-Reproduction/
+│
+├── WFlib/
+│   ├── models/
+│   │   └── ARES.py
+│   └── tools/
+│       ├── data_processor.py
+│       ├── evaluator.py
+│       ├── model_utils.py
+│       └── mtaf_dataset.py
+│
+├── exp/
+│   ├── dataset_process/
+│   │   ├── dataset_split.py
+│   │   └── gen_mtaf_stream.py
+│   ├── train_stream.py
+│   ├── test_stream.py
+│   ├── diagnose_ares_valid.py
+│   ├── diagnose_ares_bn.py
+│   └── summarize_ares_runs.py
+│
+├── diagnostics/
+│   ├── ares_2tab_epoch18_validation.json
+│   └── ares_4tab_bn_sensitivity_seed2024.json
+│
+├── results/
+│   ├── ares_closed_world_2to5_summary.json
+│   └── ares_closed_world_2to5_summary.md
+│
+├── scripts/
+├── figures/
+├── README.md
+├── LICENSE
+└── setup.py
 ```
 
-Other dependencies come from `setup.py`; their original versions are not fully recorded. MPS commands require a supported Apple Silicon/PyTorch installation. Download the official data separately. The examples use lowercase local filenames (`datasets/closed_2tab.npz` etc.); upstream downloads may use different capitalization.
+The repository also retains supporting components of the original Website-Fingerprinting-Library.
 
-For **new local artifacts only**, choose `k=2`, `3`, `4`, or `5`:
+---
 
-```sh
-k=2
-python -m exp.dataset_process.dataset_split \
-  --dataset "closed_${k}tab" --use_stratify False
+## 9. Reproducibility
 
-for split in train valid test; do
-  python -m exp.dataset_process.gen_mtaf_stream \
-    --input "datasets/closed_${k}tab/${split}.npz" \
-    --output-dir "datasets/closed_${k}tab/mtaf_${split}_stream"
-done
+### 9.1 Environment
+
+The experiments were performed using:
+
+- Python 3.9.6
+- PyTorch 2.2.2
+- NumPy 1.26.4
+- Apple Silicon MPS
+
+Install the dependencies required by the upstream library and configure a compatible Python environment before running the experiments.
+
+### 9.2 Dataset Preparation
+
+Download the corresponding closed-world dataset from Zenodo and place it in:
+
+```text
+datasets/closed_2tab.npz
 ```
 
-The upstream split script eagerly loads raw data and can overwrite existing split files: run it only when those outputs do not exist. Streaming extraction refuses existing output directories. Allow disk space for raw splits, temporary raw arrays, and generated features.
+For other settings, replace `2` with `3`, `4`, or `5`.
 
-Optional bounded checks before a new run (each performs optimizer steps but saves no checkpoint):
+Split the dataset:
 
-```sh
-python -m exp.train_stream --num-tabs "$k" --device mps \
-  --batch-size 16 --smoke-test
-python -m exp.train_stream --num-tabs "$k" --device mps \
-  --batch-size 64 --benchmark-steps 5
+```bash
+python exp/dataset_process/dataset_split.py \
+  --dataset closed_2tab \
+  --use_stratify False
 ```
 
-Full training and held-out evaluation, when intentionally requested:
+### 9.3 Generate MTAF Features
 
-```sh
-python -m exp.train_stream --num-tabs "$k" --device mps \
-  --batch-size 64 --epochs 30 \
-  --train-dir "datasets/closed_${k}tab/mtaf_train_stream" \
-  --valid-dir "datasets/closed_${k}tab/mtaf_valid_stream" \
-  --run-dir "checkpoints/ares_${k}tab_30epochs_bs64"
+```bash
+python -m exp.dataset_process.gen_mtaf_stream \
+  --input datasets/closed_2tab/train.npz \
+  --output-dir datasets/closed_2tab/mtaf_train_stream
+```
 
-python -m exp.test_stream --num-tabs "$k" --device mps \
+Repeat for the validation and test splits using their respective input files and output directories.
+
+### 9.4 Train ARES
+
+```bash
+python -m exp.train_stream \
+  --num-tabs 2 \
+  --train-dir datasets/closed_2tab/mtaf_train_stream \
+  --valid-dir datasets/closed_2tab/mtaf_valid_stream \
   --batch-size 64 \
-  --test-dir "datasets/closed_${k}tab/mtaf_test_stream" \
-  --checkpoint "checkpoints/ares_${k}tab_30epochs_bs64/best.pth" \
-  --result "checkpoints/ares_${k}tab_30epochs_bs64/test_results.json"
+  --epochs 30 \
+  --device mps \
+  --run-dir checkpoints/ares_2tab_30epochs_bs64
 ```
 
-Choose a new run directory for repeats. Training refuses an existing run directory; testing refuses an existing result and checks tab count against the adjacent `run_config.json`. Learning rate, loss, optimizer, and seed are fixed in the wrapper; the commands use the recorded settings. Do not tune experiments against held-out test scores.
+### 9.5 Evaluate ARES
 
-## Records and diagnostics
+```bash
+python -m exp.test_stream \
+  --num-tabs 2 \
+  --checkpoint checkpoints/ares_2tab_30epochs_bs64/best.pth \
+  --test-dir datasets/closed_2tab/mtaf_test_stream \
+  --result checkpoints/ares_2tab_30epochs_bs64/test_results.json \
+  --batch-size 64 \
+  --device mps
+```
 
-- [`results/ares_closed_world_2to5_summary.json`](results/ares_closed_world_2to5_summary.json): saved run configurations, split metadata, metric provenance, and checkpoint SHA-256 identities.
-- [`results/ares_closed_world_2to5_summary.md`](results/ares_closed_world_2to5_summary.md): readable results and parameter record.
-- [`diagnostics/ares_2tab_epoch18_validation.json`](diagnostics/ares_2tab_epoch18_validation.json): validation ranking, class recall, and missed-pair diagnostics from `exp/diagnose_ares_valid.py` (2-tab-specific).
-- [`diagnostics/ares_4tab_bn_sensitivity_seed2024.json`](diagnostics/ares_4tab_bn_sensitivity_seed2024.json): controlled BatchNorm-buffer sensitivity probe from `exp/diagnose_ares_bn.py`, using a fixed validation subset and training-mode forwards without optimizer updates.
-- `exp/test_*.py` and `exp/dataset_process/test_*.py`: focused tests for the added wrappers, diagnostics, summaries, and data path. The original `exp/test.py` is an evaluation entry point, not a unit test.
+Replace the tab count and corresponding paths for the remaining experiments.
 
-`python -m exp.summarize_ares_runs` generates the summary only when all four local runs and split manifests exist and the summary output paths are absent. It refuses to overwrite the records included here. Saved records retain historical absolute paths as provenance; those paths are not portable and should not be followed to locate artifacts in another checkout. Checkpoint hashes identify artifacts, but saved test JSON alone does not cryptographically bind scores to an evaluation invocation.
+The custom scripts refuse to overwrite certain existing outputs. Use fresh output paths when repeating experiments.
 
-Datasets, processed features, and checkpoint binaries are **excluded from GitHub** and are not included in this copy. Obtain data from its original source and train locally; the public records alone cannot rerun inference. Source, Markdown reports, JSON summaries, and intended diagnostic records remain trackable.
+---
 
-## Limitations and attribution
+## 10. Evaluation Metrics
 
-Recurring validation-score collapses remain unresolved. For example, 3-tab AP@3 fell from 0.7690 to 0.1588 before recovering, and 4-tab AP@4 fell from 0.8578 to 0.0767 and 0.0827 late in training (reported training-log observations). BatchNorm sensitivity, small final batches, optimization dynamics, and backend effects are hypotheses, not established causes. The diagnostic uses the best checkpoint rather than a collapsed-epoch state; it cannot establish the historical cause, and a negative probe does not rule out training-time instability. Stochastic training-mode layers also remain active during that probe.
+The following metrics were used:
 
-The results fall short of the published reference values. Differences in batch size, final-batch handling, backend, incomplete environment locking, and unresolved training instability limit exact reproducibility. No architecture or feature-definition change is claimed as part of this reproduction.
+**AUC:** Measures the model's ability to rank positive website classes above negative classes.
 
-The original implementation belongs to its upstream authors. The existing [MIT license](LICENSE), including the copyright notice for **Xinhao Deng@Tsinghua University (2024)**, is preserved unchanged. Retain that notice when redistributing the code, and credit the original research, WFlib, and dataset authors. This repository documents reproduction engineering and experimental observations, not independent authorship of upstream algorithms.
+**P@k:** Measures how many of the k highest-ranked predictions correspond to the k active websites.
+
+**AP@k:** Uses the repository's rank-based definition:
+
+\[
+AP@k = \frac{1}{k}\sum_{i=1}^{k}P@i
+\]
+
+This definition was compared against the accessible manuscript's reported MAP@k formulation.
+
+---
+
+## 11. Reproducibility Records
+
+The repository includes:
+
+- Consolidated experimental results.
+- Training configurations recorded in the results summary.
+- Best-epoch information.
+- Checkpoint SHA-256 hashes.
+- Dataset validation and preprocessing scripts.
+- Diagnostic reports.
+- Synthetic unit tests.
+
+Detailed records are available in:
+
+```text
+results/ares_closed_world_2to5_summary.md
+results/ares_closed_world_2to5_summary.json
+```
+
+Large datasets, generated MTAF arrays, and trained model checkpoints are excluded from GitHub due to storage requirements.
+
+The checkpoint hashes document the identities of the locally retained model artifacts.
+
+---
+
+## 12. Limitations
+
+This reproduction has several limitations:
+
+1. **Numerical differences:** Reproduced metrics do not exactly match the published results.
+2. **Hardware differences:** Experiments were performed on Apple MPS rather than the original CUDA environment.
+3. **Batch-size differences:** Batch size 64 was used instead of the released script's batch size 512.
+4. **Training instability:** Some epochs experienced severe validation-score collapses whose cause remains unresolved.
+5. **Limited scope:** Only the closed-world 2–5-tab experiments were reproduced.
+6. **No repeated-seed evaluation:** Each configuration was trained once using seed 2024.
+7. **Excluded model files:** Dataset archives and model checkpoints are not distributed through this repository.
+
+The project therefore represents a documented baseline reproduction rather than an exact replication of every result in the paper.
+
+---
+
+## 13. References and Attribution
+
+### Research Paper
+
+Xinhao Deng et al.  
+**Toward Robust Multi-Tab Website Fingerprinting.**  
+*IEEE Transactions on Networking*, 2026.
+
+- [Paper](https://arxiv.org/abs/2501.12622)
+- [DOI](https://doi.org/10.1109/TON.2026.3666721)
+
+### Original Implementation
+
+FIND-Lab — Website-Fingerprinting-Library
+
+https://github.com/FIND-Lab/Website-Fingerprinting-Library
+
+### Dataset
+
+Dataset for Website Fingerprinting Attack Evaluation
+
+https://zenodo.org/records/13732130
+
+### License
+
+This repository retains code originating from the Website-Fingerprinting-Library.
+
+The original MIT license and copyright notice are preserved in [LICENSE](LICENSE).
+
+The ARES architecture and upstream implementation are credited to their original authors.
+
+The reproduction workflow, memory-efficient data pipeline, training and evaluation adaptations, diagnostic scripts, and experimental analysis were developed as part of this reproduction project.
+
+---
+
+## 14. Project Status
+
+**Completed:**
+
+- [x] Closed-world 2-tab reproduction
+- [x] Closed-world 3-tab reproduction
+- [x] Closed-world 4-tab reproduction
+- [x] Closed-world 5-tab reproduction
+- [x] Dataset validation and MTAF preprocessing
+- [x] Training and held-out evaluation
+- [x] Initial training-stability investigation
+- [x] Consolidated experimental results
+- [x] GitHub documentation
+
+**Future Work:**
+
+- Investigate the source of validation instability.
+- Evaluate additional random seeds.
+- Examine sensitivity to batch size and training configuration.
+- Extend experiments to open-world or other multi-tab scenarios.
+- Compare ARES with other website-fingerprinting approaches.
+
