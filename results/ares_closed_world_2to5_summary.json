@@ -1,0 +1,585 @@
+{
+  "limitations": [
+    "Recurring validation-score collapses remain unresolved; BatchNorm has not been proven responsible.",
+    "Best epochs are user-supplied training-log transcriptions unless also recorded in configuration.",
+    "Only saved rounded aggregate metrics are available; no uncertainty or significance is inferred.",
+    "Checkpoint hashes identify current artifacts; result JSON does not independently bind scores to a checkpoint hash or test invocation.",
+    "Metadata paths and manifests are checked; datasets and checkpoint tensors are not deserialized."
+  ],
+  "metric_compatibility": {
+    "AP@k": "sum(P@i for i=1..k)/k; not conventional relevance-weighted average precision",
+    "AUC": "Released evaluator uses class-wise macro ROC AUC; published averaging convention remains unverified; no AUC delta asserted",
+    "P@k": "Mean over samples of true labels among top-k predictions divided by k",
+    "final_journal_equations_independently_verified": false,
+    "implementation_file": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/WFlib/tools/evaluator.py",
+    "implementation_sha256": "1fa19ed14877e08393bf183bc75c4eff2de7c7d595b0920214e1e8e7077c89d2",
+    "published_MAP@k": "Equation (10): sum(P@i for i=1..k)/k",
+    "ranking_definition_compatible": true,
+    "verification_scope": "Released functions checked against reviewed AST fingerprints; equations (9)-(10) checked in arXiv:2501.12622v1"
+  },
+  "reference": {
+    "accessible_manuscript": "https://arxiv.org/html/2501.12622v1",
+    "citation": "Xinhao Deng et al., Toward Robust Multi-Tab Website Fingerprinting, IEEE Transactions on Networking, 2026. DOI: 10.1109/TON.2026.3666721",
+    "journal_url": "https://doi.org/10.1109/TON.2026.3666721",
+    "metrics_source": "User-supplied published values, checked against accessible manuscript Table II"
+  },
+  "runs": [
+    {
+      "artifacts": {
+        "checkpoint": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_2tab_30epochs_bs64/best.pth",
+          "sha256": "f444f0ac11a3f61a1bdd7667aeb1b4acb57ac6222e8382f31c1aee05003e86c1"
+        },
+        "run_config": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_2tab_30epochs_bs64/run_config.json",
+          "sha256": "db588ad4d5825cf3f3239babfd7ec44b42f3dd5a0be1d6bc4876e620427994d7"
+        },
+        "test_results": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_2tab_30epochs_bs64/test_results.json",
+          "sha256": "a92cb37aef43fe8b4cf99a60f962ae7e9b6e83a12b0e042e624d6f70741ae16a"
+        }
+      },
+      "best_validation_epoch": {
+        "checkpoint_metadata_inspected": false,
+        "indexing": "zero-based",
+        "source": "Transcribed from training logs, supplied by user; logs not independently parsed",
+        "value": 18
+      },
+      "missing_training_metadata": [],
+      "num_tabs": 2,
+      "published_reference_metrics": {
+        "AUC": 0.995,
+        "MAP@2": 0.938,
+        "P@2": 0.904
+      },
+      "ranking_deltas_ours_minus_reference": {
+        "AP@2_minus_published_MAP@2": -0.0442,
+        "P@2": -0.0696
+      },
+      "run_config": {
+        "batch_size": 64,
+        "checkpoint": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_2tab_30epochs_bs64/best.pth",
+        "deviations": [
+          "Training drop_last=False; released loader uses True",
+          "Configurable batch size; released ARES.sh uses 512"
+        ],
+        "device": "mps",
+        "drop_last": false,
+        "epochs": 30,
+        "learning_rate": 0.002,
+        "loss": "MultiLabelSoftMarginLoss",
+        "metrics": [
+          "AUC",
+          "P@2",
+          "AP@2"
+        ],
+        "model": "ARES",
+        "num_classes": 100,
+        "num_tabs": 2,
+        "numpy_version": "1.26.4",
+        "optimizer": "AdamW",
+        "optimizer_defaults": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.01
+        },
+        "run_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_2tab_30epochs_bs64",
+        "save_metric": "AP@2",
+        "scheduler": {
+          "gamma": 0.74,
+          "name": "StepLR",
+          "step_size": 30
+        },
+        "seed": 2024,
+        "torch_version": "2.2.2",
+        "train_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_2tab/mtaf_train_stream",
+        "train_shuffle": true,
+        "valid_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_2tab/mtaf_valid_stream",
+        "valid_shuffle": false,
+        "workers": 0
+      },
+      "run_directory": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_2tab_30epochs_bs64",
+      "splits": {
+        "test": {
+          "count": 5800,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "bbbb1294911ad9de5d35a64e1511c0bd9acaa21cfd7d316c28fda48236196f8c",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_2tab/mtaf_test_stream",
+          "path_source": "expected experiment layout; not saved test invocation"
+        },
+        "train": {
+          "count": 46980,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "13741aaf3e130e1145098eec129ba1a37846ce6d3f3b67110768375bac87c273",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_2tab/mtaf_train_stream",
+          "path_source": "run_config"
+        },
+        "valid": {
+          "count": 5220,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "fe588f08f925923d28c5bff24fddf4a05ae5bc8dee67372030cc6974a8a2774c",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_2tab/mtaf_valid_stream",
+          "path_source": "run_config"
+        }
+      },
+      "test_metrics": {
+        "AP@2": 0.8938,
+        "AUC": 0.9901,
+        "P@2": 0.8344
+      },
+      "training_parameters": {
+        "batch_size": 64,
+        "deviations": [
+          "Training drop_last=False; released loader uses True",
+          "Configurable batch size; released ARES.sh uses 512"
+        ],
+        "device": "mps",
+        "drop_last": false,
+        "epochs": 30,
+        "learning_rate": 0.002,
+        "loss": "MultiLabelSoftMarginLoss",
+        "numpy_version": "1.26.4",
+        "optimizer": "AdamW",
+        "optimizer_defaults": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.01
+        },
+        "scheduler": {
+          "gamma": 0.74,
+          "name": "StepLR",
+          "step_size": 30
+        },
+        "seed": 2024,
+        "torch_version": "2.2.2",
+        "train_shuffle": true,
+        "valid_shuffle": false,
+        "workers": 0
+      }
+    },
+    {
+      "artifacts": {
+        "checkpoint": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_3tab_30epochs_bs64/best.pth",
+          "sha256": "2d79342b0f52190bf8bf677a42125816f66238bcf1a9da64bbb5ac77ac7f43f9"
+        },
+        "run_config": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_3tab_30epochs_bs64/run_config.json",
+          "sha256": "81a8dd6dde81a0fc71c23341ba1ce72135882c8913cb9f0c4962dfe4c486b0a0"
+        },
+        "test_results": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_3tab_30epochs_bs64/test_results.json",
+          "sha256": "439f630deac0385935430cafb598da2428c89010a2a38587dc58d1781ae146d7"
+        }
+      },
+      "best_validation_epoch": {
+        "checkpoint_metadata_inspected": false,
+        "indexing": "zero-based",
+        "source": "Transcribed from training logs, supplied by user; logs not independently parsed",
+        "value": 28
+      },
+      "missing_training_metadata": [],
+      "num_tabs": 3,
+      "published_reference_metrics": {
+        "AUC": 0.99,
+        "MAP@3": 0.916,
+        "P@3": 0.873
+      },
+      "ranking_deltas_ours_minus_reference": {
+        "AP@3_minus_published_MAP@3": -0.0495,
+        "P@3": -0.0877
+      },
+      "run_config": {
+        "batch_size": 64,
+        "checkpoint": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_3tab_30epochs_bs64/best.pth",
+        "deviations": [
+          "Training drop_last=False; released loader uses True",
+          "Configurable batch size; released ARES.sh uses 512"
+        ],
+        "device": "mps",
+        "drop_last": false,
+        "epochs": 30,
+        "learning_rate": 0.002,
+        "loss": "MultiLabelSoftMarginLoss",
+        "metrics": [
+          "AUC",
+          "P@3",
+          "AP@3"
+        ],
+        "model": "ARES",
+        "num_classes": 100,
+        "num_tabs": 3,
+        "numpy_version": "1.26.4",
+        "optimizer": "AdamW",
+        "optimizer_defaults": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.01
+        },
+        "run_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_3tab_30epochs_bs64",
+        "save_metric": "AP@3",
+        "scheduler": {
+          "gamma": 0.74,
+          "name": "StepLR",
+          "step_size": 30
+        },
+        "seed": 2024,
+        "torch_version": "2.2.2",
+        "train_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_3tab/mtaf_train_stream",
+        "train_shuffle": true,
+        "valid_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_3tab/mtaf_valid_stream",
+        "valid_shuffle": false,
+        "workers": 0
+      },
+      "run_directory": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_3tab_30epochs_bs64",
+      "splits": {
+        "test": {
+          "count": 5800,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "6259c9d3aec95bb2de7a4f5711f92629fd417dbd041adcd56153caa11b098b64",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_3tab/mtaf_test_stream",
+          "path_source": "expected experiment layout; not saved test invocation"
+        },
+        "train": {
+          "count": 46980,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "a88cb89e9659009c7ea14e3570e7a536003a2eba24b7de9a13204f15fc7b6f87",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_3tab/mtaf_train_stream",
+          "path_source": "run_config"
+        },
+        "valid": {
+          "count": 5220,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "cf9a29270d7c57821e3e5198c8d224531531b6b8bfd9fb6795519e98e685514e",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_3tab/mtaf_valid_stream",
+          "path_source": "run_config"
+        }
+      },
+      "test_metrics": {
+        "AP@3": 0.8665,
+        "AUC": 0.9796,
+        "P@3": 0.7853
+      },
+      "training_parameters": {
+        "batch_size": 64,
+        "deviations": [
+          "Training drop_last=False; released loader uses True",
+          "Configurable batch size; released ARES.sh uses 512"
+        ],
+        "device": "mps",
+        "drop_last": false,
+        "epochs": 30,
+        "learning_rate": 0.002,
+        "loss": "MultiLabelSoftMarginLoss",
+        "numpy_version": "1.26.4",
+        "optimizer": "AdamW",
+        "optimizer_defaults": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.01
+        },
+        "scheduler": {
+          "gamma": 0.74,
+          "name": "StepLR",
+          "step_size": 30
+        },
+        "seed": 2024,
+        "torch_version": "2.2.2",
+        "train_shuffle": true,
+        "valid_shuffle": false,
+        "workers": 0
+      }
+    },
+    {
+      "artifacts": {
+        "checkpoint": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_4tab_30epochs_bs64/best.pth",
+          "sha256": "d1d204fae879aa7c3aa07c541f1aa4e078034df15ef28bd68231972b41a8db0a"
+        },
+        "run_config": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_4tab_30epochs_bs64/run_config.json",
+          "sha256": "41e5654cb830e9df3eb736a1eff810bdd039faea8f42a5ba0a47a13eee73b1c2"
+        },
+        "test_results": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_4tab_30epochs_bs64/test_results.json",
+          "sha256": "95f7b67a0e050030d6193e39d0fbacd39b5a0ba686ac56dfc39e2162f11fc720"
+        }
+      },
+      "best_validation_epoch": {
+        "checkpoint_metadata_inspected": false,
+        "indexing": "zero-based",
+        "source": "Transcribed from training logs, supplied by user; logs not independently parsed",
+        "value": 27
+      },
+      "missing_training_metadata": [],
+      "num_tabs": 4,
+      "published_reference_metrics": {
+        "AUC": 0.989,
+        "MAP@4": 0.922,
+        "P@4": 0.884
+      },
+      "ranking_deltas_ours_minus_reference": {
+        "AP@4_minus_published_MAP@4": -0.0618,
+        "P@4": -0.1009
+      },
+      "run_config": {
+        "batch_size": 64,
+        "checkpoint": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_4tab_30epochs_bs64/best.pth",
+        "deviations": [
+          "Training drop_last=False; released loader uses True",
+          "Configurable batch size; released ARES.sh uses 512"
+        ],
+        "device": "mps",
+        "drop_last": false,
+        "epochs": 30,
+        "learning_rate": 0.002,
+        "loss": "MultiLabelSoftMarginLoss",
+        "metrics": [
+          "AUC",
+          "P@4",
+          "AP@4"
+        ],
+        "model": "ARES",
+        "num_classes": 100,
+        "num_tabs": 4,
+        "numpy_version": "1.26.4",
+        "optimizer": "AdamW",
+        "optimizer_defaults": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.01
+        },
+        "run_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_4tab_30epochs_bs64",
+        "save_metric": "AP@4",
+        "scheduler": {
+          "gamma": 0.74,
+          "name": "StepLR",
+          "step_size": 30
+        },
+        "seed": 2024,
+        "torch_version": "2.2.2",
+        "train_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_4tab/mtaf_train_stream",
+        "train_shuffle": true,
+        "valid_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_4tab/mtaf_valid_stream",
+        "valid_shuffle": false,
+        "workers": 0
+      },
+      "run_directory": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_4tab_30epochs_bs64",
+      "splits": {
+        "test": {
+          "count": 5800,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "6675976d811be6344696249fea7de63f4ccf9ab445d3be93722dce46b424770d",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_4tab/mtaf_test_stream",
+          "path_source": "expected experiment layout; not saved test invocation"
+        },
+        "train": {
+          "count": 46980,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "bb048b128b6738f51130ddcde8e0c449e502df9ee7b0eb99bddd76486055244a",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_4tab/mtaf_train_stream",
+          "path_source": "run_config"
+        },
+        "valid": {
+          "count": 5220,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "4166962b16aec305cd09429815fd4f1df4c8b396a88d9e5452bd442f4c99c080",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_4tab/mtaf_valid_stream",
+          "path_source": "run_config"
+        }
+      },
+      "test_metrics": {
+        "AP@4": 0.8602,
+        "AUC": 0.9756,
+        "P@4": 0.7831
+      },
+      "training_parameters": {
+        "batch_size": 64,
+        "deviations": [
+          "Training drop_last=False; released loader uses True",
+          "Configurable batch size; released ARES.sh uses 512"
+        ],
+        "device": "mps",
+        "drop_last": false,
+        "epochs": 30,
+        "learning_rate": 0.002,
+        "loss": "MultiLabelSoftMarginLoss",
+        "numpy_version": "1.26.4",
+        "optimizer": "AdamW",
+        "optimizer_defaults": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.01
+        },
+        "scheduler": {
+          "gamma": 0.74,
+          "name": "StepLR",
+          "step_size": 30
+        },
+        "seed": 2024,
+        "torch_version": "2.2.2",
+        "train_shuffle": true,
+        "valid_shuffle": false,
+        "workers": 0
+      }
+    },
+    {
+      "artifacts": {
+        "checkpoint": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_5tab_30epochs_bs64/best.pth",
+          "sha256": "dcb540edbd4111a1f7e5cfd9f24f24cb14587fbbb58b79d0e7eb36f1670e5b02"
+        },
+        "run_config": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_5tab_30epochs_bs64/run_config.json",
+          "sha256": "dc083ea6c45334e615bd9ca97438738abc91598a33623506e722d010efd26d72"
+        },
+        "test_results": {
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_5tab_30epochs_bs64/test_results.json",
+          "sha256": "79292d013026f59ad4ed677e83b14f2b7b564ad11f6f16b65d16ce549ea2c050"
+        }
+      },
+      "best_validation_epoch": {
+        "checkpoint_metadata_inspected": false,
+        "indexing": "zero-based",
+        "source": "Transcribed from training logs, supplied by user; logs not independently parsed",
+        "value": 24
+      },
+      "missing_training_metadata": [],
+      "num_tabs": 5,
+      "published_reference_metrics": {
+        "AUC": 0.988,
+        "MAP@5": 0.909,
+        "P@5": 0.869
+      },
+      "ranking_deltas_ours_minus_reference": {
+        "AP@5_minus_published_MAP@5": -0.0952,
+        "P@5": -0.1528
+      },
+      "run_config": {
+        "batch_size": 64,
+        "checkpoint": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_5tab_30epochs_bs64/best.pth",
+        "deviations": [
+          "Training drop_last=False; released loader uses True",
+          "Configurable batch size; released ARES.sh uses 512"
+        ],
+        "device": "mps",
+        "drop_last": false,
+        "epochs": 30,
+        "learning_rate": 0.002,
+        "loss": "MultiLabelSoftMarginLoss",
+        "metrics": [
+          "AUC",
+          "P@5",
+          "AP@5"
+        ],
+        "model": "ARES",
+        "num_classes": 100,
+        "num_tabs": 5,
+        "numpy_version": "1.26.4",
+        "optimizer": "AdamW",
+        "optimizer_defaults": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.01
+        },
+        "run_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_5tab_30epochs_bs64",
+        "save_metric": "AP@5",
+        "scheduler": {
+          "gamma": 0.74,
+          "name": "StepLR",
+          "step_size": 30
+        },
+        "seed": 2024,
+        "torch_version": "2.2.2",
+        "train_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_5tab/mtaf_train_stream",
+        "train_shuffle": true,
+        "valid_dir": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_5tab/mtaf_valid_stream",
+        "valid_shuffle": false,
+        "workers": 0
+      },
+      "run_directory": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/checkpoints/ares_5tab_30epochs_bs64",
+      "splits": {
+        "test": {
+          "count": 5800,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "f50c0b37581570e258cb68c2b103e2ae26fe3de7b579aec23c5691df1b726520",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_5tab/mtaf_test_stream",
+          "path_source": "expected experiment layout; not saved test invocation"
+        },
+        "train": {
+          "count": 46980,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "17d387e828a6439b965a5d8b729d0403c1490eaed47541545600b887552c3dfd",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_5tab/mtaf_train_stream",
+          "path_source": "run_config"
+        },
+        "valid": {
+          "count": 5220,
+          "count_source": "COMPLETE.json; tensor contents not revalidated",
+          "manifest_sha256": "e0d8e545131701bc4ced0200aaf920a14edf7d301c78914519c6dc5950fca030",
+          "path": "/Users/tanikagoyal/BTP/Website-Fingerprinting-Library/datasets/closed_5tab/mtaf_valid_stream",
+          "path_source": "run_config"
+        }
+      },
+      "test_metrics": {
+        "AP@5": 0.8138,
+        "AUC": 0.964,
+        "P@5": 0.7162
+      },
+      "training_parameters": {
+        "batch_size": 64,
+        "deviations": [
+          "Training drop_last=False; released loader uses True",
+          "Configurable batch size; released ARES.sh uses 512"
+        ],
+        "device": "mps",
+        "drop_last": false,
+        "epochs": 30,
+        "learning_rate": 0.002,
+        "loss": "MultiLabelSoftMarginLoss",
+        "numpy_version": "1.26.4",
+        "optimizer": "AdamW",
+        "optimizer_defaults": {
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0.01
+        },
+        "scheduler": {
+          "gamma": 0.74,
+          "name": "StepLR",
+          "step_size": 30
+        },
+        "seed": 2024,
+        "torch_version": "2.2.2",
+        "train_shuffle": true,
+        "valid_shuffle": false,
+        "workers": 0
+      }
+    }
+  ],
+  "schema_version": 1
+}
